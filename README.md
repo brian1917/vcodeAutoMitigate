@@ -15,17 +15,17 @@ A sample config file is below:
     },
     "scope": {
         "allApps": false,
-        "appListTextFile": "/Users/bpitta/go/src/github.com/brian1917/vcodeAutoMitigate/applist.txt"
+        "appListTextFile": "applist.txt"
     },
     "mode":{
-      "logOnly": false,
+      "logOnly": true,
       "proposeOnly": false,
-      "proposeAndAccept": true
+      "proposeAndAccept": false
     },
     "targetFlaws": {
-      "cweList": "80",
+      "cweList": "80, 79",
       "requireTextInDesc": true,
-      "requiredText":"realName",
+      "requiredText":"texToSearchFor",
       "static": true,
       "dynamic": true
     },
