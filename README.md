@@ -37,7 +37,7 @@ A sample config file is below:
 }
  ```
  **_Configuration Notes_**:
- 1. The `appsListTextFile` parameter should be used when `allApps` is set to `false`. It should a text file with target app IDs on separate lines.
+ 1. The `appsListTextFile` parameter should be used when `allApps` is set to `false`. It should be a text file with target app IDs on separate lines.
  2. The `cweList` parameters should be a comma separated list of CWEs that should be targeted.
  3. The `requiredTextInDesc` parameter will search for text in the flaw description. The text to search for should be placed in the `requiredText` parameter. For example, you can use this to target flaws on a specific cookie from a dynamic scan by including the cookie name.
  4. The `mitigationType` must be `comment`, `fp`, `appdesign`, `osenv`, or `netenv`.
