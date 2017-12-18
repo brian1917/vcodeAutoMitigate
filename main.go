@@ -31,13 +31,7 @@ func main() {
 
 	// PARSE CONFIG FILE AND LOG CONFIG SETTINGS
 	config := parseConfig()
-	log.Printf("Config Settings:\n"+
-		"[*] Creds File: %v\n"+
-		"[*] Scope:%v\n"+
-		"[*] Mode Text:%v\n"+
-		"[*] Target Flaws:%v\n"+
-		"[*] Mitigation Info:%v\n",
-		config.Auth.CredsFile, config.Scope, config.Mode, config.TargetFlaws, config.MitigationInfo)
+	log.Printf("[*] Config Settings: \n %+v \n", config)
 
 	// GET APP LIST
 	appList := getApps(config.Auth.CredsFile, config.Scope.AllApps, config.Scope.AppListTextFile)
@@ -86,46 +80,66 @@ func main() {
 		//CHECK FLAWS AND
 		if appSkip == false {
 			for _, f := range flaws {
-				// ONLY RUN ON OPEN, RE-OPENED, AND NEW FLAWS (CONFIRM!!!)
-				if f.RemediationStatus == "Open" || f.RemediationStatus == "Re-opened" || f.RemediationStatus == "New" {
-					// CHECK FOR INCLUDING COMMENT TEXT
-					if config.TargetFlaws.RequireTextInDesc == true && strings.Contains(f.Description, config.TargetFlaws.RequiredText) {
-						// CHECK IF EXPIRED AND BUILD ARRAY
-						flawList = append(flawList, f.Issueid)
+				// ONLY RUN ON NEW, OPEN, AND RE-OPENE FLAWS
+				if f.RemediationStatus == "New" || f.RemediationStatus == "Open" || f.RemediationStatus == "Reopened" {
+					// ONLY RUN IF CWE MATHCHES
+					matches := 0
+					cweList := strings.Split(config.TargetFlaws.CWEList, ",")
+					for _, cwe := range cweList {
+						if cwe == f.Cweid {
+							matches++
+						}
 					}
-				}
+					if matches > 0 {
+						// CHECK DESCRIPTION TEXT
+						if config.TargetFlaws.RequireTextInDesc == true && strings.Contains(f.Description, config.TargetFlaws.RequiredText) {
+							//CHECK SCAN TYPE
+							if (config.TargetFlaws.Static == true && (f.Module != "dynamic_analysis" && f.Module != "manual_analysis")) ||
+								(config.TargetFlaws.Dynamic == true && f.Module == "dynamic_analysis") {
+								// Build Array
+								flawList = append(flawList, f.Issueid)
+							}
+						}
+					}
 
+				}
 			}
 			// IF WE HAVE FLAWS MEETING CRITERIA, RUN UPDATE MITIGATION API
 			if len(flawList) > 0 {
-				log.Printf("[*]Trying to mitigate IDs %v in Build ID %v in App ID %v", flawList, recentBuild, appID)
 
 				if config.Mode.LogOnly == true {
-					log.Printf("App ID: %v: Flaw ID(s) %v meet criteria\n", appID, strings.Join(flawList, ","))
+					log.Printf("[*]LOG MODE ONLY - App ID: %v Flaw ID(s) %v meet criteria\n", appID, strings.Join(flawList, ","))
 				} else {
 
-					// PROPOSE AND MITIGATE THE FLAWS
-					actions := [2]string{"propose", "approve"}
-					for i := 0; i <= 1; i++ {
-						expireError := vcodeapi.ParseUpdateMitigation(config.Auth.CredsFile, recentBuild,
+					// SET THE ACTIONS
+					actions := [2]string{config.MitigationInfo.MitigationType, "accepted"}
+
+					// FOR PROPOSE ONLY, CYCLE THROUGH ONCE
+					limit := 1
+					if config.Mode.ProposeOnly == true {
+						limit = 0
+					}
+
+					// CHECK CONFIGURATIONS AND MITIGATE AND/OR LOG
+					for i := 0; i <= limit; i++ {
+						mitigationError := vcodeapi.ParseUpdateMitigation(config.Auth.CredsFile, recentBuild,
 							actions[i], config.MitigationInfo.ProposalComment, strings.Join(flawList, ","))
 						// IF WE HAVE AN ERROR, WE NEED TO TRY 2 BUILDS BACK FROM RESULTS BUILD
 						// EXAMPLE = RESULTS IN BUILD 3 (MANUAL); DYNAMIC IS BUILD 2; STATIC IS BUILD 1 (BUILD WE NEED TO MITIGATE STATIC FLAW)
 						for i := 0; i < 1; i++ {
-							if expireError != nil {
-								expireError = vcodeapi.ParseUpdateMitigation(config.Auth.CredsFile, recentBuild,
+							if mitigationError != nil {
+								mitigationError = vcodeapi.ParseUpdateMitigation(config.Auth.CredsFile, recentBuild,
 									actions[i], config.MitigationInfo.ProposalComment, strings.Join(flawList, ","))
-								if expireError != nil {
-									log.Printf("[*] %v", expireError)
-								}
+
 							}
 						}
 						// IF EXPIRE ERROR IS STILL NOT NULL, NOW WE LOG THE ERROR AND EXIT
-						if expireError != nil {
+						if mitigationError != nil {
+							log.Printf("[!] Mitigation Error: %v", mitigationError)
 							log.Fatalf("[!] Could not "+actions[i]+" mitigation for Flaw IDs %v in App ID %v", flawList, appID)
 						}
 						// LOG SUCCESSFUL PROPOSED MITIGATIONS
-						log.Printf("App ID %v: "+actions[i]+" Flaw IDs %v\n", appID, strings.Join(flawList, ","))
+						log.Printf("[*] MITIGATION ACTION COMPLETED - App ID %v: "+actions[i]+" Flaw IDs %v\n", appID, strings.Join(flawList, ","))
 					}
 				}
 			}

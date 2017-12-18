@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"os"
 
@@ -22,6 +23,7 @@ func getApps(credsFile string, allApps bool, txtfile string) []string {
 	} else {
 		file, err := os.Open(txtfile)
 		if err != nil {
+			fmt.Println("error")
 			log.Fatal(err)
 		}
 		defer file.Close()

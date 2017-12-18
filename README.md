@@ -13,25 +13,26 @@ A sample config file is below:
     "auth": {
       "credsFile": "/Users/bpitta/.veracode/credentials"
     },
-    "scope:": {
-        "allApps": true,                    
-        "appListTextFile":""
+    "scope": {
+        "allApps": false,
+        "appListTextFile": "/Users/bpitta/go/src/github.com/brian1917/vcodeAutoMitigate/applist.txt"
     },
     "mode":{
-      "logOnly": true,
+      "logOnly": false,
       "proposeOnly": false,
-      "proposeAndAccept": false
+      "proposeAndAccept": true
     },
     "targetFlaws": {
-      "cweList": true,
+      "cweList": "80",
       "requireTextInDesc": true,
-      "requiredText":"",
+      "requiredText":"realName",
       "static": true,
       "dynamic": true
     },
     "mitigationInfo":{
-        "proposalComment": "Put text here",
-        "approvalComment": "Put text here"
+        "mitigationType": "netenv",
+        "proposalComment": "Proposal text",
+        "approvalComment": "Approval text"
     }
 }
  ```
@@ -39,6 +40,7 @@ A sample config file is below:
  1. The `appsListTextFile` parameter should be used when `allApps` is set to `false`. It should a text file with target app IDs on separate lines.
  2. The `cweList` parameters should be a comma separated list of CWEs that should be targeted.
  3. The `requiredTextInDesc` parameter will search for text in the flaw description. The text to search for should be placed in the `requiredText` parameter. For example, you can use this to target flaws on a specific cookie from a dynamic scan by including the cookie name.
+ 4. The `mitigationType` must be `comment`, `fp`, `appdesign`, `osenv`, or `netenv`.
 
 ## Credentials File
 The credentials file should be set up as follows:
